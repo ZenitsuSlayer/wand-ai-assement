@@ -1,0 +1,24 @@
+{
+  "nodes": [
+    {
+      "id": "fetch",
+      "agent": { "type": "tool.agent", "config": {}, "timeout_sec": 10, "retries": 2 },
+      "params": {
+        "tool": "http.get",
+        "args": { "url": "https://jsonplaceholder.typicode.com/todos/1" }
+      }
+    },
+    {
+      "id": "extract",
+      "agent": { "type": "tool.agent", "config": {}, "timeout_sec": 10, "retries": 1 },
+      "params": {
+        "tool": "json.pick",
+        "args": { "data": {"$from": "fetch", "$field": "json"}, "paths": ["title", "id"] },
+        "input_from": "fetch"
+      }
+    }
+  ],
+  "edges": [
+    { "source": "fetch", "target": "extract" }
+  ]
+}
