@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Tuple
 from app.models import WorkflowSpec
 
 def build_graph(spec: WorkflowSpec) -> Tuple[Dict[str, List[str]], Dict[str, int]]:
@@ -8,25 +8,30 @@ def build_graph(spec: WorkflowSpec) -> Tuple[Dict[str, List[str]], Dict[str, int
     for e in spec.edges:
         if e.source not in adj or e.target not in adj:
             raise ValueError(f"Edge references unknown node: {e.source}->{e.target}")
+        if e.source == e.target:
+            raise ValueError(f"Self-edge not allowed: {e.source}->{e.target}")
         adj[e.source].append(e.target)
         indeg[e.target] += 1
     return adj, indeg
 
 def topo_levels(adj: Dict[str, List[str]], indeg: Dict[str, int]) -> List[List[str]]:
-    # Kahn's algorithm, return levels for parallel execution
+    # Kahn's algorithm (levels for parallel execution)
     zero = [n for n, d in indeg.items() if d == 0]
     levels: List[List[str]] = []
+    visited_count = 0
+
     while zero:
         level = list(zero)
         levels.append(level)
-        next_zero: List[str] = []
+        zero = []
         for u in level:
+            visited_count += 1
             for v in adj[u]:
                 indeg[v] -= 1
                 if indeg[v] == 0:
-                    next_zero.append(v)
-        zero = next_zero
-    # Validate no cycles
-    if any(d > 0 for d in indeg.values()):
-        raise ValueError("Graph has cycles; DAG required.")
+                    zero.append(v)
+
+    if visited_count != len(indeg):
+        remaining = [n for n, d in indeg.items() if d > 0]
+        raise ValueError(f"Graph has cycles; nodes with unmet deps: {remaining}")
     return levels
